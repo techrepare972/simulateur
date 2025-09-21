@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simulateur de valeur d’occasion</title>
+  <style>
+    /* Palette adaptée au logo (dégradé vert -> bleu clair) */
+    :root{ 
+      --bg:#0a0d12; 
+      --card:#111418ee; 
+      --muted:#a1b5b5; 
+      --text:#e6f2f0; 
+      --accent:#9ae66e; /* vert clair du logo */
+      --accent2:#6cd0d9; /* bleu clair du logo */
+      --ok:#7ee2a8; 
+      --bad:#f57c7c; 
+      --shadow:0 10px 25px rgba(0,0,0,.35);
+      --radius:18px; 
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#0a0d12,#111418);color:var(--text)}
+    .wrap{max-width:1100px;margin:40px auto;padding:20px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+    .brand{display:flex;align-items:center;gap:14px}
+    .brand img{width:56px;height:56px;object-fit:contain;border-radius:999px;background:radial-gradient(ellipse at 30% 30%, rgba(154,230,110,.15), rgba(108,208,217,.1));padding:6px;border:1px solid rgba(255,255,255,.06)}
+    h1{font-size:clamp(22px,3vw,34px);margin:0;line-height:1.2;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .badge{font-size:12px;color:#0b1226;background:linear-gradient(90deg,var(--accent),var(--accent2));padding:6px 10px;border-radius:999px;font-weight:700;letter-spacing:.3px}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:20px}
+    @media (max-width:960px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card h2{margin:0 0 6px 0;font-size:18px;color:var(--accent2)}
+    .card .sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+    .card .body{padding:18px}
+    .step{display:flex;gap:12px;align-items:center;margin:16px 0 10px}
+    .step .num{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:#0b1020;border:1px solid rgba(255,255,255,.08);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0a0d12;font-weight:700}
+    label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
+    select,input[type="text"],input[type="number"],.pillset{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);color:var(--text);padding:12px 12px;border-radius:12px;outline:none}
+    select:focus,input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(108,208,217,.2)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:720px){.row{grid-template-columns:1fr}}
+    .pillset{display:flex;gap:8px;flex-wrap:wrap;padding:8px}
+    .pill{padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.1);cursor:pointer;font-size:13px;user-select:none}
+    .pill[data-active="true"]{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(108,208,217,.25) inset}
+    .result{padding:20px;border-top:1px dashed rgba(255,255,255,.1)}
+    .price{font-size:34px;font-weight:800;color:var(--accent)}
+    .price small{font-size:14px;color:var(--muted);font-weight:600}
+    .delta{color:var(--muted);font-size:13px;margin-top:6px}
+    .cta{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+    .btn{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#061019;font-weight:800;border:none;border-radius:12px;padding:12px 16px;cursor:pointer}
+    .btn.secondary{background:#131a33;color:var(--text);border:1px solid rgba(255,255,255,.08)}
+    .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#0c1328;border:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--muted);margin-right:6px}
+    .muted{color:var(--muted)}
+    .note{font-size:12px;color:var(--muted);margin-top:8px}
+    footer{opacity:.8;text-align:center;font-size:12px;margin:24px 0}
+    .maintenanceBox{margin-top:18px;padding:14px;border:1px dashed rgba(255,255,255,.15);border-radius:12px;background:#0c1328}
+    .maintenanceBox .question{margin-bottom:8px;font-size:14px;color:var(--text)}
+    .maintenanceBox .btnLink{display:inline-block;margin-top:8px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#061019;padding:8px 12px;border-radius:8px;font-weight:700;text-decoration:none}
+  </style>
+  <!-- Analytics (Plausible recommandé) -->
+  <script defer data-domain="techprecision972.com" src="https://plausible.io/js/script.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <img src="logo.png" alt="Logo" />
+        <h1>Simulateur de valeur d’occasion</h1>
+      </div>
+      <span class="badge">BETA</span>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT: form -->
+      <section class="card" id="formCard">
+        <div class="body">
+          <div class="step"><span class="num">1</span><h2>Type d’équipement</h2></div>
+          <div class="row">
+            <div>
+              <label for="deviceType">Catégorie</label>
+              <select id="deviceType">
+                <option value="smartphone">Smartphone</option>
+                <option value="laptop">Ordinateur portable</option>
+                <option value="tablet">Tablette</option>
+              </select>
+            </div>
+            <div>
+              <label for="year">Année (approx. du modèle)</label>
+              <input id="year" type="number" min="2013" max="2025" placeholder="ex: 2020" />
+            </div>
+          </div>
+
+          <div class="step"><span class="num">2</span><h2>Marque & modèle</h2></div>
+          <div class="row">
+            <div>
+              <label for="brand">Marque</label>
+              <select id="brand"></select>
+            </div>
+            <div>
+              <label for="model">Modèle</label>
+              <select id="model"></select>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="otherModel">Autre modèle (si non listé)</label>
+              <input id="otherModel" type="text" placeholder="Saisir le modèle exact" />
+            </div>
+            <div>
+              <label for="msrp">Prix neuf d’origine (optionnel, €)</label>
+              <input id="msrp" type="number" placeholder="ex: 1299" />
+            </div>
+          </div>
+
+          <div class="step"><span class="num">3</span><h2>État & mémoire / stockage</h2></div>
+          <div class="row">
+            <div>
+              <label>Écran</label>
+              <div class="pillset" data-name="screen">
+                <div class="pill" data-value="ok">Intact</div>
+                <div class="pill" data-value="scratched">Rayé</div>
+                <div class="pill" data-value="cracked">Fissuré</div>
+              </div>
+            </div>
+            <div>
+              <label>Batterie</label>
+              <div class="pillset" data-name="battery">
+                <div class="pill" data-value="good">Bonne autonomie</div>
+                <div class="pill" data-value="weak">Faible</div>
+                <div class="pill" data-value="dead">Morte</div>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Carte mère</label>
+              <div class="pillset" data-name="board">
+                <div class="pill" data-value="clean">Jamais réparée</div>
+                <div class="pill" data-value="repaired">Déjà réparée</div>
+                <div class="pill" data-value="faulty">HS</div>
+              </div>
+            </div>
+            <div>
+              <label>Esthétique</label>
+              <div class="pillset" data-name="cosmetics">
+                <div class="pill" data-value="asnew">Comme neuf</div>
+                <div class="pill" data-value="used">Usé</div>
+                <div class="pill" data-value="bad">Abîmé</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="storageType">Type de stockage</label>
+              <select id="storageType">
+                <option value="auto">Auto (selon appareil)</option>
+                <option value="hdd">HDD</option>
+                <option value="ssd">SSD (SATA)</option>
+                <option value="nvme">SSD (NVMe)</option>
+                <option value="emmc">eMMC</option>
+              </select>
+            </div>
+            <div>
+              <label for="storageSize">Capacité</label>
+              <select id="storageSize">
+                <option value="32">32 Go</option>
+                <option value="64">64 Go</option>
+                <option value="128" selected>128 Go</option>
+                <option value="256">256 Go</option>
+                <option value="512">512 Go</option>
+                <option value="1024">1 To</option>
+                <option value="2048">2 To</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Blocages</label>
+              <div class="pillset" data-name="locks">
+                <div class="pill" data-value="none">Aucun</div>
+                <div class="pill" data-value="icloud">iCloud/FRP</div>
+                <div class="pill" data-value="bios">BIOS/EFI</div>
+              </div>
+            </div>
+            <div>
+              <label>Accessoires</label>
+              <div class="pillset" data-name="accs">
+                <div class="pill" data-value="box">Boîte</div>
+                <div class="pill" data-value="charger">Chargeur</div>
+                <div class="pill" data-value="none">Aucun</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4 only for laptops -->
+          <div class="step" id="maintenanceStep" style="display:none"><span class="num">4</span><h2>Maintenance préventive</h2></div>
+          <div class="maintenanceBox" id="maintenanceBox" style="display:none">
+            <div class="question">Avez-vous déjà réalisé des tâches de maintenance matériel (nettoyage interne, dépoussiérage, changement pâte thermique, etc.) ?</div>
+            <div>
+              <label><input type="radio" name="maintenance" value="oui"> Oui</label>
+              <label style="margin-left:12px"><input type="radio" name="maintenance" value="non"> Non</label>
+            </div>
+            <div id="maintenanceAdvice" class="note"></div>
+          </div>
+
+          <div class="note">⚠️ Estimation indicative basée sur l’état et le marché de l’occasion. Pour affiner, un diagnostic en atelier est recommandé.</div>
+        </div>
+        <div class="result" id="result">
+          <div class="price"><span id="priceRange">—</span> <small>EUR</small></div>
+          <div class="delta" id="deltaText">Complétez les champs pour obtenir une estimation.</div>
+          <div class="cta">
+            <button class="btn" id="ctaRepair">Maximiser la valeur (proposition de réparation)</button>
+            <button class="btn secondary" id="ctaQuote">Recevoir un devis PDF</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: tips / breakdown -->
+      <aside class="card">
+        <div class="body">
+          <h2>Comment l’estimation est calculée ?</h2>
+          <p class="sub">Méthode transparente et adaptée à la microsoudure.</p>
+          <div id="breakdown"></div>
+          <hr style="border-color:rgba(255,255,255,.08);margin:18px 0" />
+          <h2>Conseils pour augmenter la valeur</h2>
+          <ul>
+            <li>Remplacement batterie si <span class="tag">faible/morte</span>.</li>
+            <li>Réparer port de charge / lignes d’alimentation (<span class="tag">microsoudure</span>).</li>
+            <li>Upgrade HDD → SSD/NVMe sur laptop (<span class="tag">+10–18%</span> en moyenne).</li>
+            <li>Nettoyage carte mère et reball si oxydation.</li>
+          </ul>
+          <p class="note">Astuce: proposez au client un <strong>pack “pré-vente”</strong> (batterie + nettoyage + contrôle) pour maximiser le prix final.</p>
+        </div>
+      </aside>
+    </div>
+
+    <footer>© <span id="yearNow"></span> Votre Atelier – Microsoudure & Réparation | Ce simulateur n’est pas un devis contractuel.
+      <div class="note">Utilisation: <span id="usageCount">—</span> consultations</div>
+    </footer>
+  </div>
+
+  <script>
+    // --- Mini base de modèles (vous pouvez étendre facilement) ---
+    const CATALOG = {
+      smartphone: {
+        Apple: {
+          'iPhone 11': {year:2019, base:300},
+          'iPhone 12': {year:2020, base:380},
+          'iPhone 13': {year:2021, base:470},
+          'iPhone 14': {year:2022, base:560},
+          'iPhone 15': {year:2023, base:640},
+        },
+        Samsung: {
+          'Galaxy S20': {year:2020, base:300},
+          'Galaxy S21': {year:2021, base:360},
+          'Galaxy S22': {year:2022, base:430},
+          'Galaxy S23': {year:2023, base:520},
+        },
+        Xiaomi: {
+          'Redmi Note 10': {year:2021, base:120},
+          'Mi 11': {year:2021, base:260},
+        }
+      },
+      laptop: {
+        Apple: {
+          'MacBook Air 2019': {year:2019, base:420},
+          'MacBook Pro 2019': {year:2019, base:700},
+          'MacBook Pro 2020': {year:2020, base:850},
+        },
+        Lenovo: {
+          'ThinkPad T480': {year:2018, base:350},
+          'ThinkPad X1 Carbon (7th)': {year:2019, base:520},
+        },
+        HP: {
+          'Pavilion 15 2020': {year:2020, base:380},
+        }
+      },
+      tablet: {
+        Apple: {
+          'iPad 8': {year:2020, base:220},
+          'iPad Air 4': {year:2020, base:320},
+          'iPad Pro 11 (2021)': {year:2021, base:520},
+        },
+        Samsung: {
+          'Galaxy Tab S7': {year:2020, base:300},
+        }
+      }
+    };
+
+    const DEFAULT_BASE = {smartphone: 220, laptop: 420, tablet: 200};
+
+    const brandSel = document.getElementById('brand');
+    const modelSel = document.getElementById('model');
+    const deviceTypeSel = document.getElementById('deviceType');
+    const resultEl = document.getElementById('priceRange');
+    const deltaEl = document.getElementById('deltaText');
+    const breakdownEl = document.getElementById('breakdown');
+
+    const state = {
+      deviceType: 'smartphone',
+      brand: null,
+      model: null,
+      year: null,
+      msrp: null,
+      condition: {screen:'ok', battery:'good', board:'clean', cosmetics:'asnew'},
+      storageType: 'auto',
+      storageSize: 128,
+      locks: new Set(['none']),
+      accs: new Set(),
+    };
+
+    // Init year label
+    document.getElementById('yearNow').textContent = new Date().getFullYear();
+
+    // Helpers
+    const byId = id => document.getElementById(id);
+    function setActive(pillset, value){
+      [...pillset.querySelectorAll('.pill')].forEach(p=>p.dataset.active = (p.dataset.value===value));
+    }
+    function toggleSet(set, value){
+      if(value==='none'){ set.clear(); set.add('none'); return; }
+      if(set.has('none')) set.delete('none');
+      set.has(value) ? set.delete(value) : set.add(value);
+    }
+
+    // Populate brands/models according to device type
+    function populateBrands(){
+      const type = deviceTypeSel.value;
+      brandSel.innerHTML='';
+      const brands = Object.keys(CATALOG[type]||{});
+      if(!brands.length){ brandSel.innerHTML='<option value="Other">Autre</option>'; populateModels(); return; }
+      for(const b of brands){
+        const opt=document.createElement('option'); opt.value=b; opt.textContent=b; brandSel.appendChild(opt);
+      }
+      const other=document.createElement('option'); other.value='Other'; other.textContent='Autre'; brandSel.appendChild(other);
+      populateModels();
+    }
+    function populateModels(){
+      const type = deviceTypeSel.value;
+      const brand = brandSel.value;
+      modelSel.innerHTML='';
+      const models = (CATALOG[type]||{})[brand] || {};
+      const keys = Object.keys(models);
+      if(!keys.length){ modelSel.innerHTML='<option value="Other">Autre</option>'; return; }
+      for(const m of keys){ const opt=document.createElement('option'); opt.value=m; opt.textContent=m; modelSel.appendChild(opt); }
+      const other=document.createElement('option'); other.value='Other'; other.textContent='Autre'; modelSel.appendChild(other);
+    }
+
+    // Event wiring
+    deviceTypeSel.addEventListener('change',()=>{ state.deviceType=deviceTypeSel.value; populateBrands(); compute(); toggleMaintenance(); });
+    byId('year').addEventListener('input', e=>{ state.year = parseInt(e.target.value)||null; compute(); });
+    byId('msrp').addEventListener('input', e=>{ state.msrp = parseFloat(e.target.value)||null; compute(); });
+    brandSel.addEventListener('change',()=>{ state.brand=brandSel.value; populateModels(); compute(); })
+    modelSel.addEventListener('change',()=>{ state.model=modelSel.value; compute(); })
+    byId('otherModel').addEventListener('input', e=>{ if(modelSel.value==='Other'){ state.model = e.target.value.trim(); compute(); } })
+
+    // Pillsets
+    document.querySelectorAll('.pillset').forEach(set=>{
+      const name=set.dataset.name;
+      if(['locks','accs'].includes(name)){
+        set.addEventListener('click', e=>{
+          const pill=e.target.closest('.pill'); if(!pill) return;
+          toggleSet(state[name], pill.dataset.value);
+          pill.dataset.active = pill.dataset.active!=="true";
+          compute();
+        });
+      } else {
+        // single-choice
+        const def = {screen:'ok', battery:'good', board:'clean', cosmetics:'asnew'}[name];
+        setActive(set, def);
+        set.addEventListener('click', e=>{
+          const pill=e.target.closest('.pill'); if(!pill) return;
+          setActive(set, pill.dataset.value);
+          state.condition[name]=pill.dataset.value; compute();
+        });
+      }
+    });
+
+    byId('storageType').addEventListener('change', e=>{ state.storageType=e.target.value; compute(); });
+    byId('storageSize').addEventListener('change', e=>{ state.storageSize=parseInt(e.target.value); compute(); });
+
+    byId('ctaRepair').addEventListener('click',()=>{
+      alert('Conseil: Batterie + port de charge + nettoyage carte mère = +10–25% sur la valeur de revente. Contactez l’atelier pour un devis.');
+      track('cta_repair_clicked', {deviceType: state.deviceType});
+    });
+    byId('ctaQuote').addEventListener('click',()=>{
+      alert('Fonction devis PDF à intégrer (ex: envoi par email).');
+      track('cta_quote_clicked', {deviceType: state.deviceType});
+    });
+
+    // --- Pricing Engine ---
+    function getBase(){
+      const type = state.deviceType;
+      const brand = brandSel.value;
+      const model = modelSel.value;
+      let base = DEFAULT_BASE[type]||200;
+      let y = state.year || null;
+
+      const cat = CATALOG[type]||{};
+      if(brand && model && cat[brand] && cat[brand][model]){
+        base = cat[brand][model].base;
+        y = y || cat[brand][model].year;
+      }
+      // If MSRP provided, anchor base ~45% of MSRP for year 0–1, then depreciate below
+      if(state.msrp){
+        const anchor = Math.max(80, state.msrp * 0.45);
+        base = Math.max(base, anchor);
+      }
+      // Age depreciation
+      const nowY = new Date().getFullYear();
+      const age = y ? Math.max(0, nowY - y) : 3; // assume 3y if unknown
+      // Category depreciation curve (heavier early years)
+      const curves = {smartphone: .23, laptop: .18, tablet: .2};
+      const k = curves[type] || .2;
+      const depFactor = Math.pow((1 - k), age);
+      const agedBase = Math.max(40, base * depFactor);
+      return {agedBase, age, y: y || (nowY - age)};
+    }
+
+    function conditionMultiplier(){
+      let m = 1;
+      // Screen
+      const screen = state.condition.screen;
+      if(screen==='scratched') m *= 0.93;
+      if(screen==='cracked') m *= 0.65;
+      // Battery
+      const battery = state.condition.battery;
+      if(battery==='weak') m *= 0.9;
+      if(battery==='dead') m *= 0.7;
+      // Board
+      const board = state.condition.board;
+      if(board==='repaired') m *= 0.95; // disclosed repair
+      if(board==='faulty') m *= 0.4; // HS
+      // Cosmetics
+      const cos = state.condition.cosmetics;
+      if(cos==='used') m *= 0.95;
+      if(cos==='bad') m *= 0.82;
+      return m;
+    }
+
+    function storageAdj(){
+      const type = state.deviceType;
+      let stType = state.storageType;
+      if(stType==='auto'){
+        if(type==='laptop') stType='ssd';
+        if(type==='smartphone' || type==='tablet') stType='emmc';
+      }
+      const size = state.storageSize;
+      // Base adjustments by type
+      let bonus = 0;
+      if(type==='laptop'){
+        if(stType==='hdd') bonus -= 40;
+        if(stType==='ssd') bonus += 60;
+        if(stType==='nvme') bonus += 90;
+      } else {
+        // phones/tablets: storage is embedded (eMMC/NAND); adjust by capacity tiers only
+        if(size>=256) bonus += 40;
+        if(size>=512) bonus += 90;
+        if(size>=1024) bonus += 150;
+      }
+      // Capacity scaling for laptops too (adds to type bonus)
+      if(type==='laptop'){
+        if(size>=512) bonus += 40;
+        if(size>=1024) bonus += 90;
+        if(size>=2048) bonus += 160;
+      }
+      return bonus;
+    }
+
+    function locksAdj(){
+      let factor = 1;
+      const L = state.locks;
+      if(L.has('icloud')) factor *= 0.35;
+      if(L.has('bios')) factor *= 0.6;
+      return factor;
+    }
+
+    function accessoriesAdj(){
+      let plus = 0;
+      const A = state.accs;
+      if(A.has('box')) plus += 10;
+      if(A.has('charger')) plus += 15;
+      return plus;
+    }
+
+    function compute(){
+      const baseInfo = getBase();
+      const base = baseInfo.agedBase;
+      const mCond = conditionMultiplier();
+      const addStorage = storageAdj();
+      const addAccs = accessoriesAdj();
+      const mLocks = locksAdj();
+
+      // Raw estimate
+      let mid = Math.max(10, (base * mCond * mLocks) + addStorage + addAccs);
+      // Build a range +-8–14% depending on uncertainty (broader if issues)
+      const uncertainty = (state.condition.board==='faulty' || state.condition.screen==='cracked') ? 0.14 : 0.1;
+      const lo = Math.max(5, Math.round(mid * (1 - uncertainty) / 5) * 5);
+      const hi = Math.max(lo+5, Math.round(mid * (1 + uncertainty) / 5) * 5);
+
+      resultEl.textContent = `${lo} – ${hi}`;
+      breakdownEl.innerHTML = renderBreakdown({baseInfo, mCond, addStorage, addAccs, mLocks, mid, lo, hi});
+      deltaEl.textContent = adviceText(lo, hi);
+
+      // fire first-time compute event for analytics
+      if(!window.__firstComputed){
+        window.__firstComputed = true;
+        track('estimate_calculated', {deviceType: state.deviceType, brand: state.brand||'', model: state.model||''});
+      }
+    }
+
+    function renderBreakdown({baseInfo, mCond, addStorage, addAccs, mLocks, mid, lo, hi}){
+      const parts = [];
+      parts.push(`<div class="tag">Base (après âge): ~€${Math.round(baseInfo.agedBase)}</div>`);
+      parts.push(`<div class="tag">État ×${mCond.toFixed(2)}</div>`);
+      if(addStorage!==0) parts.push(`<div class="tag">Stockage ${addStorage>0?'+':''}${addStorage}€</div>`);
+      if(addAccs!==0) parts.push(`<div class="tag">Accessoires ${addAccs>0?'+':''}${addAccs}€</div>`);
+      if(mLocks!==1) parts.push(`<div class="tag">Blocages ×${mLocks.toFixed(2)}</div>`);
+      return `
+        <p class="muted">Résumé des facteurs :</p>
+        <div style="margin-bottom:10px">${parts.join(' ')}</div>
+        <p class="muted">Estimation médiane: <strong>€${Math.round(mid)}</strong><br/>Plage proposée: <strong>€${lo} – €${hi}</strong></p>
+        <p class="note">Transparence: utilisez cette décomposition pour justifier vos offres et recommander des réparations ciblées.</p>
+      `;
+    }
+
+    function adviceText(lo, hi){
+      const issues = [];
+      if(state.condition.screen==='cracked') issues.push('remplacement écran');
+      if(state.condition.battery!=='good') issues.push('remplacement batterie');
+      if(state.condition.board!=='clean') issues.push('diagnostic carte mère');
+      if(state.storageType==='hdd') issues.push('upgrade SSD');
+      if(issues.length===0) return `Conseil: un contrôle carte mère + nettoyage peut sécuriser la vente et maintenir la valeur dans le haut de la fourchette (€${hi}).`;
+      return `Pour viser le haut de la fourchette, envisagez: ${issues.join(', ')}.`;
+    }
+
+    // --- Maintenance visibility only for laptops ---
+    const maintenanceStep = document.getElementById('maintenanceStep');
+    const maintenanceBox = document.getElementById('maintenanceBox');
+    function toggleMaintenance(){
+      if(deviceTypeSel && deviceTypeSel.value==='laptop'){
+        maintenanceStep.style.display='flex';
+        maintenanceBox.style.display='block';
+      } else {
+        maintenanceStep.style.display='none';
+        maintenanceBox.style.display='none';
+      }
+    }
+
+    // Maintenance radios
+    document.querySelectorAll('input[name="maintenance"]').forEach(r=>{
+      r.addEventListener('change', e=>{
+        const advice=document.getElementById('maintenanceAdvice');
+        if(e.target.value==='non'){
+          advice.innerHTML = "⚡ Nous vous recommandons vivement de réaliser un entretien matériel complet (nettoyage, dépoussiérage, pâte thermique). C’est un gage de qualité et nous offrons une garantie 3 mois sur l’entretien ! <br><a href='https://wa.me/596696600814?text=Bonjour%2C%20je%20souhaite%20faire%20une%20tache%20de%20maintenance%20avec%20garantie%20pour%20mon%20%C3%A9quipement.' target='_blank' class='btnLink'>👉 Planifier via WhatsApp</a><div class='note'>✅ Garantie 3 mois incluse après entretien</div>";
+        } else {
+          advice.innerHTML = "👍 Parfait ! Votre appareil bénéficie déjà d’un suivi, ce qui rassure les acheteurs.";
+        }
+      });
+    });
+
+    // --- Simple public counter (CountAPI) ---
+    const COUNTAPI = {namespace:'simu-microsoudure', key:'valeur-occasion-total'};
+    fetch(`https://api.countapi.xyz/hit/${COUNTAPI.namespace}/${COUNTAPI.key}`)
+      .then(r=>r.json()).then(d=>{ const el=document.getElementById('usageCount'); if(el) el.textContent = d.value?.toLocaleString('fr-FR')||'1'; })
+      .catch(()=>{});
+
+    // --- Analytics helpers (Plausible / GA4) ---
+    function track(eventName, props){
+      if(window.plausible){ window.plausible(eventName, {props}); }
+      if(window.gtag){ window.gtag('event', eventName, props||{}); }
+    }
+
+    // Init
+    populateBrands();
+    state.brand = brandSel.value;
+    populateModels();
+    state.model = modelSel.value;
+    toggleMaintenance();
+    compute();
+  </script>
+</body>
+</html>
+
