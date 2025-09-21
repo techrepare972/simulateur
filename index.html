@@ -359,12 +359,36 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function generateEstimatePDF(opts = {download: true}){
     let jsPDF; try { jsPDF = await getJsPDF(); } catch(err) { alert("Erreur: " + err.message); throw err; }
-    const doc = new jsPDF({unit: 'pt', format: 'a4'}); const margin = 40; let y = margin;
+    const doc = new jsPDF({unit: 'pt', format: 'a4'});
+    const margin = 40;
+    let y = margin;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const centerX = pageWidth / 2;
+
+    // AMÉLIORATION : En-tête centré avec logo et nom de la marque
     const logoData = await fetchImageAsDataURL('logo.png');
-    if (logoData) { try { doc.addImage(logoData, 'PNG', margin, y, 48, 48); } catch(e){} }
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.text('Fiche d\'Estimation de Valeur', margin + 60, y + 24);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text(`Émis le ${new Date().toLocaleDateString('fr-FR')}`, margin + 60, y + 40);
-    y += 80;
+    if (logoData) {
+        try {
+            const logoWidth = 60;
+            const logoHeight = 60;
+            doc.addImage(logoData, 'PNG', centerX - (logoWidth / 2), y, logoWidth, logoHeight);
+            y += logoHeight + 10;
+        } catch(e){ console.error("PDF logo error:", e); }
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(230, 242, 240); // --text color
+    doc.text('TECHPRECISION', centerX, y, { align: 'center' });
+    y += 24;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(161, 181, 181); // --muted color
+    doc.text('Fiche d\'Estimation de Valeur', centerX, y, { align: 'center' });
+    y += 16;
+    doc.setFontSize(10);
+    doc.text(`Émis le ${new Date().toLocaleDateString('fr-FR')}`, centerX, y, { align: 'center' });
+    y += 50;
+    doc.setTextColor(230, 242, 240); // reset to --text
 
     const modelText = (state.model === 'Other' ? otherModelInput.value : state.model) || 'N/A';
     const details = {"Catégorie": {smartphone:'Smartphone', laptop:'Ordinateur', tablet:'Tablette'}[state.deviceType], "Marque/Modèle": `${state.brand} ${modelText}`, "Année": state.year || 'N/A', "Stockage": `${byId('storageSize').selectedOptions[0].text} (${byId('storageType').value.toUpperCase()})`};
