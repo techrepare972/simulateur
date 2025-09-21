@@ -55,6 +55,29 @@
     .btnLink{display:inline-block;margin-top:8px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#061019;padding:8px 12px;border-radius:8px;font-weight:700;text-decoration:none}
     .tests{margin-top:10px;font-size:12px;color:var(--muted)}
     #maintenanceSection {padding: 10px 0;}
+    /* AMÉLIORATION : Styles pour la modale personnalisée */
+    .modal-overlay {
+      display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+      width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7);
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background-color: var(--card); margin: 15% auto; padding: 24px;
+      border: 1px solid rgba(255,255,255,.1); width: 90%; max-width: 500px;
+      border-radius: var(--radius); text-align: center; position: relative;
+      animation: fadeIn .3s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-close {
+      position: absolute; top: 10px; right: 20px; color: var(--muted);
+      font-size: 28px; font-weight: bold; cursor: pointer; transition: color .2s;
+    }
+    .modal-close:hover, .modal-close:focus { color: var(--text); }
+    .modal-content h3 { color: var(--accent2); margin-top: 0; font-size: 20px; }
+    .modal-content p { color: var(--text); font-size: 15px; line-height: 1.5; margin-bottom: 20px; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
@@ -197,6 +220,16 @@
     </footer>
   </div>
 
+<!-- AMÉLIORATION : Modale pour "Maximiser la valeur" -->
+<div id="repairModal" class="modal-overlay">
+  <div class="modal-content">
+    <span id="closeModal" class="modal-close">&times;</span>
+    <h3>Conseil TECHPRECISION</h3>
+    <p>Un entretien ciblé (batterie, port de charge, nettoyage) peut augmenter la valeur de revente de 10% à 25%.</p>
+    <a href="https://wa.me/596696600814?text=Bonjour%20Techprecision,%20j'aimerais%20discuter%20d'une%20r%C3%A9paration%20pour%20maximiser%20la%20valeur%20de%20mon%20appareil." target="_blank" class="btnLink">👉 Contacter l'atelier via WhatsApp</a>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -223,7 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
         breakdownEl = byId('breakdown'), ctaDownloadBtn = byId('ctaDownload'),
         resultContainer = byId('resultContainer'), otherModelInput = byId('otherModel'),
         maintenanceContainer = byId('maintenanceContainer'), maintenancePillset = byId('maintenancePillset'),
-        maintenanceDetails = byId('maintenanceDetails'), maintenanceAdvice = byId('maintenanceAdvice');
+        maintenanceDetails = byId('maintenanceDetails'), maintenanceAdvice = byId('maintenanceAdvice'),
+        repairModal = byId('repairModal'), closeModal = byId('closeModal');
 
   function setActive(pillset, value){ [...pillset.querySelectorAll('.pill')].forEach(p => p.dataset.active = (p.dataset.value === value)); }
   function toggleSet(set, value){ if (value === 'none') { set.clear(); set.add('none'); return; } if (set.has('none')) set.delete('none'); set.has(value) ? set.delete(value) : set.add(value); }
@@ -390,7 +424,19 @@ document.addEventListener('DOMContentLoaded', () => {
   byId('maintenanceDate').addEventListener('input', e => { state.maintenance.date = e.target.value; });
   byId('maintenanceType').addEventListener('input', e => { state.maintenance.details = e.target.value; });
 
-  byId('ctaRepair').addEventListener('click', () => { alert('Conseil: Batterie + port de charge + nettoyage = +10–25% sur la valeur. Contactez l’atelier.'); track('cta_repair_clicked', {deviceType: state.deviceType}); });
+  byId('ctaRepair').addEventListener('click', () => {
+    repairModal.style.display = 'block';
+    track('cta_repair_clicked', {deviceType: state.deviceType});
+  });
+
+  closeModal.addEventListener('click', () => {
+    repairModal.style.display = 'none';
+  });
+  window.addEventListener('click', e => {
+      if (e.target == repairModal) {
+          repairModal.style.display = 'none';
+      }
+  });
 
   ctaDownloadBtn.addEventListener('click', async () => {
     ctaDownloadBtn.disabled = true; ctaDownloadBtn.textContent = 'Génération...';
