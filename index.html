@@ -1,37 +1,3 @@
-Absolument \! Voici une version améliorée de votre code.
-
-J'ai intégré les améliorations que vous avez demandées (plage d'années dynamique de 2010 à aujourd'hui, meilleure gestion du PDF) et j'ai également ajouté quelques optimisations pour rendre le code plus robuste et facile à maintenir.
-
------
-
-## Principales améliorations apportées
-
-1.  **Plage d'année dynamique** 📅
-
-      * Le champ "Année" est maintenant configuré dynamiquement en JavaScript.
-      * La valeur minimale est fixée à `2010`.
-      * La valeur maximale est automatiquement définie sur l'**année en cours** (`new Date().getFullYear()`), ce qui évite d'avoir à mettre à jour le code chaque année.
-
-2.  **Génération PDF améliorée** 📄
-
-      * **Mise en page professionnelle** : Le PDF généré a maintenant une structure plus claire avec un en-tête (logo, titre), des sections bien définies pour les détails de l'appareil et son état, et un pied de page.
-      * **Contenu plus riche** : Le PDF inclut désormais le détail complet de l'état de l'appareil (écran, batterie, carte mère, etc.), ce qui le rend beaucoup plus utile pour une vente ou un don.
-      * **Nom de fichier dynamique** : Le nom du fichier PDF est généré à partir de la marque et du modèle de l'appareil (ex: `estimatif-Apple-iPhone_14.pdf`), ce qui est plus pratique pour l'utilisateur.
-      * **Gestion du chargement** : Le bouton de téléchargement affiche un message "Génération..." pendant la création du PDF pour informer l'utilisateur que l'action est en cours.
-
-3.  **Optimisations du code et de l'expérience utilisateur (UX)** ✨
-
-      * **Initialisation propre** : Le code d'initialisation (comme la configuration du champ année) est groupé au sein d'un écouteur d'événement `DOMContentLoaded` pour s'assurer que le HTML est prêt avant toute manipulation.
-      * **Clarté du code** : Ajout de commentaires pour expliquer les parties clés, notamment dans la logique de génération du PDF.
-      * **Constantes** : Utilisation de `const` pour des valeurs qui ne changent pas (comme l'année de départ `MIN_YEAR`) pour rendre le code plus lisible.
-
------
-
-## Code amélioré
-
-Voici le code complet. Vous pouvez le copier-coller directement dans votre fichier HTML.
-
-```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -736,4 +702,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-```
